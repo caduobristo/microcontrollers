@@ -33,8 +33,8 @@ SORT_ADR   EQU 0x20000800
 Start  
 ; Comece o código aqui <======================================================
 
-		LDR R0, =RANDOM_LIST
-		LDR R1, =RANDOM_ADR
+		LDR R0, =RANDOM_LIST   ; lista de números aleatórios
+		LDR R1, =RANDOM_ADR    ; endereço de escrita da lista aletória
 	
 Copy
 		LDRB R2, [R0], #1
@@ -42,6 +42,45 @@ Copy
 		CMP R2, #0
 		BNE Copy
 	
+		LDR R0, =RANDOM_ADR    ; endereço de leitura da lista aleatória
+        LDR R1, =SORT_ADR      ; ponteiro de escrita da lista de primos
+        MOV R4, #0             ; contador do número de primos encontrados
+
+FindPrimes
+        LDRB R2, [R0], #1      ; R2 = valor atual
+        CMP R2, #0
+        BEQ PrimesDone         ; R2 = 0 -> fim da lista
+
+        CMP R2, #2
+        BLT NotPrime           ; R2 < 2 não é primo
+        CMP R2, #2
+        BEQ IsPrime            ; 2 é primo
+
+        MOV R5, #2             ; R5 = divisor -> começa em 2
+
+DivLoop
+        CMP R5, R2
+        BGE IsPrime            ; se R5 >= R2 então nenhum divisor encontrado, portanto é primo
+
+        UDIV R6, R2, R5        ; R6 = R2 / R5
+        MLS  R7, R6, R5, R2    ; R7 = R2 - (R6 * R5) -> resto da divisão
+        CMP  R7, #0
+        BEQ NotPrime           ; resto = 0 -> R2 divisível por R5 -> não primo
+
+        ADD  R5, R5, #1
+        B    DivLoop
+
+IsPrime
+        STRB R2, [R1], #1      ; grava primo na lista de primos
+        ADD  R4, R4, #1        ; incrementa contador de primos
+        B    FindPrimes
+
+NotPrime
+        B    FindPrimes
+
+PrimesDone
+        ; fim da lista aleatória
+
 Stop
         B       Stop
 		
