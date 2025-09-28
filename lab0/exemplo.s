@@ -49,7 +49,7 @@ Copy
 FindPrimes
         LDRB R2, [R0], #1      ; R2 = valor atual
         CMP R2, #0
-        BEQ PrimesDone         ; R2 = 0 -> fim da lista
+        BEQ BubbleSort         ; R2 = 0 -> fim da lista
 
         CMP R2, #2
         BLT NotPrime           ; R2 < 2 não é primo
@@ -77,11 +77,37 @@ IsPrime
 
 NotPrime
         B    FindPrimes
+		
+BubbleSort
+    LDR R0, =SORT_ADR     ; ponteiro para lista de primos
+	
+OuterLoop
+    MOV R6, #0            ; flag de troca (0 = sem troca)
+    LDR R1, =SORT_ADR     ; reinicia ponteiro
+	
+InnerLoop
+    LDRB R2, [R1]         ; carrega elemento atual
+    LDRB R3, [R1, #1]     ; carrega próximo elemento
+    CMP R3, #0
+    BEQ EndInner          ; se próximo é 0 -> fim da lista
 
-PrimesDone
-        ; fim da lista aleatória
+    CMP R2, R3
+    BLE NoSwap            ; se R2 <= R3, não troca
 
-Stop
+    ; ---- troca R2 e R3 ----
+    STRB R3, [R1]         ; grava menor no lugar atual
+    STRB R2, [R1, #1]     ; grava maior no próximo
+    MOV R6, #1            ; marca que houve troca
+
+NoSwap
+    ADD R1, R1, #1        ; avança na lista
+    B InnerLoop
+
+EndInner
+    CMP R6, #0
+    BNE OuterLoop         ; se houve troca -> repetir laço
+
+Stop	; lista de primos criada e ordenada
         B       Stop
 		
 ALIGN  
