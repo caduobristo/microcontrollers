@@ -1,10 +1,19 @@
-        THUMB
+		THUMB
         AREA |.text|, CODE, READONLY, ALIGN=2
 
 ; ========= REGISTRADORES =========
 
-GPIO_PORTM_AHB_DATA_R   EQU 0x400633FC   ; PM0 PM1 PM2
+; Endereço base do Port M
+GPIO_PORTM_AHB_BASE     EQU 0x40063000
+
+; Endereço de dados do Port K (D0-D7)
 GPIO_PORTK_AHB_DATA_R   EQU 0x400613FC   ; PK0..PK7
+
+; Endereços mascarados para Port M
+; Queremos controlar PM0 (RS) e PM2 (E). Máscara = (1<<0) | (1<<2) = 0x05
+; O offset do endereço é a máscara << 2
+; Offset = 0x05 << 2 = 0x14
+GPIO_PORTM_LCD_DATA_R   EQU 0x40063014  ; (0x40063000 + 0x14)
 
 LCD_RS  EQU (1<<0)      ; PM0
 LCD_E   EQU (1<<2)      ; PM2   (RW = GND, então PM1 ignorado)
@@ -16,62 +25,63 @@ LCD_E   EQU (1<<2)      ; PM2   (RW = GND, então PM1 ignorado)
 
 ; -----------------------------------------------------
 LCD_PulseE
-        PUSH {R0,R1}
+        PUSH {R0, R1}
+        LDR R1, =GPIO_PORTM_LCD_DATA_R  ; Endereço mascarado (PM0, PM2)
 
-        LDR R1, =GPIO_PORTM_AHB_DATA_R
+        ; Lê o estado ATUAL (apenas de PM0 e PM2)
         LDR R0, [R1]
+        
+        ; Seta E (mantendo RS)
         ORR R0, R0, #LCD_E
         STR R0, [R1]
 
         NOP
         NOP
 
-        LDR R0, [R1]
+        ; Limpa E (mantendo RS)
         BIC R0, R0, #LCD_E
         STR R0, [R1]
 
-        POP {R0,R1}
+        POP {R0, R1}
         BX LR
 
 ; -----------------------------------------------------
 LCD_Command
-        PUSH {R1-R3,LR}
+        PUSH {R0, R1, LR} ; Salva R0 também
 
         ; envia byte inteiro em PK0..PK7
         LDR R1, =GPIO_PORTK_AHB_DATA_R
         STR R0, [R1]
 
-        ; RS=0
-        LDR R1, =GPIO_PORTM_AHB_DATA_R
-        LDR R3, [R1]
-        BIC R3, R3, #LCD_RS
-        STR R3, [R1]
+        ; RS=0 (apenas em PM0 e PM2)
+        LDR R1, =GPIO_PORTM_LCD_DATA_R
+        MOV R0, #0                      ; RS=0, E=0
+        STR R0, [R1]                    ; Escreve 0 em PM0 e PM2
 
         BL LCD_PulseE
         MOV R0, #2
         BL SysTick_Wait1ms
 
-        POP {R1-R3,PC}
+        POP {R0, R1, PC}
 
 ; -----------------------------------------------------
 LCD_WriteData
-        PUSH {R1-R3,LR}
+        PUSH {R0, R1, LR} ; Salva R0 também
 
         ; envia byte inteiro em PK0..PK7
         LDR R1, =GPIO_PORTK_AHB_DATA_R
-        STR R0, [R1]
+        STR R0, [R1]                    ; R0 aqui é o caractere
 
-        ; RS=1
-        LDR R1, =GPIO_PORTM_AHB_DATA_R
-        LDR R3, [R1]
-        ORR R3, R3, #LCD_RS
-        STR R3, [R1]
+        ; RS=1 (apenas em PM0 e PM2)
+        LDR R1, =GPIO_PORTM_LCD_DATA_R
+        MOV R0, #LCD_RS                 ; RS=1, E=0
+        STR R0, [R1]                    ; Escreve 1 em PM0, 0 em PM2
 
         BL LCD_PulseE
         MOV R0, #2
         BL SysTick_Wait1ms
 
-        POP {R1-R3,PC}
+        POP {R0, R1, PC}
 
 ; -----------------------------------------------------
 LCD_Init

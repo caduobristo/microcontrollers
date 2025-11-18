@@ -1,7 +1,4 @@
-; Programa mínimo: inicializa clock, SysTick, GPIO, LCD
-; e escreve "HI" na primeira linha
-
-        THUMB
+		THUMB
         AREA |.text|, CODE, READONLY, ALIGN=2
 
         EXPORT Start
@@ -11,6 +8,7 @@
         IMPORT GPIO_Init
         IMPORT LCD_Init
         IMPORT LCD_WriteData
+        IMPORT Keypad_GetKey 
 
 ; -------------------------------------------------------------------------------
 ; Função main()
@@ -21,12 +19,12 @@ Start
         BL GPIO_Init
         BL LCD_Init
 
-        MOV R0, #'H'
-        BL LCD_WriteData
-        MOV R0, #'I'
-        BL LCD_WriteData
-
 MainLoop
+        BL Keypad_GetKey  
+        CMP R0, #0            
+        BEQ MainLoop
+		
+        BL LCD_WriteData
         B MainLoop
 
         ALIGN
