@@ -386,11 +386,6 @@
           <GroupName>Source Group 1</GroupName>
           <Files>
             <File>
-              <FileName>tm4c1294ncpdt.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\tm4c1294ncpdt.h</FilePath>
-            </File>
-            <File>
               <FileName>gpio.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\gpio.c</FilePath>
@@ -419,6 +414,11 @@
               <FileName>lcd.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\lcd.c</FilePath>
+            </File>
+            <File>
+              <FileName>stepper.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\stepper.c</FilePath>
             </File>
           </Files>
         </Group>

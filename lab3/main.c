@@ -1,30 +1,28 @@
+// main.c
+// Teste do Motor de Passo em Port E (PE0-PE3)
+
 #include <stdint.h>
 #include "tm4c1294ncpdt.h"
 
-// Protótipos de funções externas
+// Protótipos
 extern void PLL_Init(void);
 extern void SysTick_Init(void);
-void GPIO_Init(void);
-void LCD_Init(void);
-void LCD_WriteData(unsigned char data);
-unsigned char Keypad_GetKey(void);
+extern void GPIO_Init(void);
+void Stepper_CW(uint32_t delay_ms);
+void Stepper_CCW(uint32_t delay_ms);
 
 int main(void)
 {
-    unsigned char key;
+    // Inicialização
+    PLL_Init();         // Clock 80MHz
+    SysTick_Init();     // Timer
+    GPIO_Init();        // Configura Port E como saída
 
-    PLL_Init();         // Configura clock para 80MHz
-    SysTick_Init();     // Inicializa SysTick
-    GPIO_Init();        // Configura Portas K, L, M
-    LCD_Init();         // Inicializa LCD
-
+    // Loop Infinito: Gira o motor
     while (1)
     {
-        key = Keypad_GetKey(); // Verifica se alguma tecla foi pressionada
-        
-        if (key != 0)          // Se houve pressionamento (retorno != 0)
-        {
-            LCD_WriteData(key); // Envia o caractere para o LCD
-        }
+        // Gira no sentido horário com 10ms de intervalo
+        // Se o motor apenas vibrar, aumente este valor para 20 ou 50
+        Stepper_CW(10); 
     }
 }

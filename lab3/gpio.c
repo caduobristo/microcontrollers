@@ -1,47 +1,43 @@
+// gpio.c
 #include <stdint.h>
 #include "tm4c1294ncpdt.h"
 
-// Definições de bits para facilitar leitura
+#define GPIO_PORTE  (1U << 4)
 #define GPIO_PORTK  (1U << 9)
 #define GPIO_PORTL  (1U << 10)
 #define GPIO_PORTM  (1U << 11)
 
 void GPIO_Init(void)
 {
-    // Ativar o clock para as portas K, L, M
-    SYSCTL_RCGCGPIO_R |= (GPIO_PORTK | GPIO_PORTL | GPIO_PORTM);
-    
-    // Esperar as portas ficarem prontas
-    while((SYSCTL_PRGPIO_R & (GPIO_PORTK | GPIO_PORTL | GPIO_PORTM)) != (GPIO_PORTK | GPIO_PORTL | GPIO_PORTM)){};
+    // Ativar clocks
+    SYSCTL_RCGCGPIO_R |= (GPIO_PORTE | GPIO_PORTK | GPIO_PORTL | GPIO_PORTM);
+    while((SYSCTL_PRGPIO_R & (GPIO_PORTE | GPIO_PORTK | GPIO_PORTL | GPIO_PORTM)) 
+           != (GPIO_PORTE | GPIO_PORTK | GPIO_PORTL | GPIO_PORTM)) {};
 
-    // --- Configuração do Port M (LCD Control + Keypad Cols) ---
-    // PM0 (RS), PM1 (RW), PM2 (E) -> Saídas
-    // PM4-PM7 (Keypad Cols) -> Entradas
-    
-    GPIO_PORTM_AMSEL_R = 0x00;      // Desabilita analógico
-    GPIO_PORTM_PCTL_R  = 0x00;      // GPIO normal
-    
-    // Direção: PM0, PM1, PM2 = Saída (1); PM4-PM7 = Entrada (0)
-    // 0x07 = 0000 0111
-    GPIO_PORTM_DIR_R = 0x07; 
-    
-    // Habilita Pull-Up nas colunas (PM4-PM7)
-    // 0xF0 = 1111 0000
-    GPIO_PORTM_PUR_R = 0xF0;
-    
-    // Habilita função digital em PM0-PM2 e PM4-PM7
-    // 0xF7 = 1111 0111
-    GPIO_PORTM_DEN_R = 0xF7;
+    // PORT E (Motor) - AHB
+    GPIO_PORTE_AHB_AMSEL_R &= ~0x0F;
+    GPIO_PORTE_AHB_PCTL_R  &= ~0x0000FFFF;
+    GPIO_PORTE_AHB_DIR_R   |= 0x0F;
+    GPIO_PORTE_AHB_AFSEL_R &= ~0x0F;
+    GPIO_PORTE_AHB_DEN_R   |= 0x0F;
+    GPIO_PORTE_AHB_DATA_R  &= ~0x0F;
 
-    // --- Configuração do Port K (LCD Data D0-D7) ---
+    // PORT M (LCD/Keypad) - APB (Sem AHB no nome)
+    GPIO_PORTM_AMSEL_R = 0x00;
+    GPIO_PORTM_PCTL_R  = 0x00;
+    GPIO_PORTM_DIR_R   = 0x07; // PM0-2 Out, PM4-7 In
+    GPIO_PORTM_PUR_R   = 0xF0; // Pull-up PM4-7
+    GPIO_PORTM_DEN_R   = 0xF7;
+
+    // PORT K (LCD Dados) - APB
     GPIO_PORTK_AMSEL_R = 0x00;
     GPIO_PORTK_PCTL_R  = 0x00;
-    GPIO_PORTK_DIR_R   = 0xFF;      // Todos saídas (D0-D7)
-    GPIO_PORTK_DEN_R   = 0xFF;      // Habilita digital
+    GPIO_PORTK_DIR_R   = 0xFF;
+    GPIO_PORTK_DEN_R   = 0xFF;
 
-    // --- Configuração do Port L (Keypad Rows PL0-PL3) ---
+    // PORT L (Keypad Rows) - APB
     GPIO_PORTL_AMSEL_R = 0x00;
     GPIO_PORTL_PCTL_R  = 0x00;
-    GPIO_PORTL_DIR_R   = 0x0F;      // PL0-PL3 saídas
-    GPIO_PORTL_DEN_R   = 0x0F;      // Habilita digital
+    GPIO_PORTL_DIR_R   = 0x0F;
+    GPIO_PORTL_DEN_R   = 0x0F;
 }
