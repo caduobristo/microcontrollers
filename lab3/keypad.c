@@ -3,53 +3,42 @@
 
 extern void SysTick_Wait1ms(uint32_t delay);
 
+// Coluna 3 (A,B,C,D) retorna 1,4,7,*
 static const unsigned char key_map[4][4] = {
-	  {'1', '2', '3', 'A'}, // Linha 1 (PL0)
-    {'4', '5', '6', 'B'}, // Linha 2 (PL1)
-    {'7', '8', '9', 'C'}, // Linha 3 (PL2)
-		{'*', '0', '#', 'D'}  // Linha 4 (PL3)
+    {'1', '2', '3', '1'}, 
+    {'4', '5', '6', '4'}, 
+    {'7', '8', '9', '7'}, 
+    {'*', '0', '#', '*'}  
 };
-
-// Função auxiliar para debounce
-void Keypad_Debounce(void)
-{
-    // Espera soltar todas as teclas (todas colunas PM4-PM7 devem ser 1)
-    // Máscara 0xF0 verifica bits 4,5,6,7.
-    while ((GPIO_PORTM_DATA_R & 0xF0) != 0xF0) {}; 
-    
-    SysTick_Wait1ms(20); // Delay de 20ms
-}
 
 unsigned char Keypad_GetKey(void)
 {
     int row, col;
-    
-    // Varre as 4 linhas
+    GPIO_PORTL_DATA_R |= 0x0F;
+
     for (row = 0; row < 4; row++)
     {
-        // 1. Ativa a linha atual (LOW) e desativa as outras (HIGH)
-        GPIO_PORTL_DATA_R = (~(1U << row)) & 0x0F;
-        
-        // Pequeno delay para estabilização do sinal
-        for(volatile int i=0; i<100; i++);
+        GPIO_PORTL_DATA_R = (GPIO_PORTL_DATA_R & 0xF0) | ((~(1U << row)) & 0x0F);
+        for(volatile int i=0; i<200; i++);
 
-        // 2. Lê as colunas (PM4-PM7)
         uint32_t cols = GPIO_PORTM_DATA_R & 0xF0;
-        
-        if (cols != 0xF0) // Alguma tecla pressionada nesta linha
+        if (cols != 0xF0) 
         {
-            // Descobre qual coluna está em 0
-            for (col = 0; col < 4; col++)
+            SysTick_Wait1ms(2);
+            if ((GPIO_PORTM_DATA_R & 0xF0) == cols) 
             {
-                // Verifica se o bit da coluna (4+col) está em 0
-                if ((cols & (1U << (4 + col))) == 0)
+                // Pula Coluna 0 (defeituosa)
+                for (col = 1; col < 4; col++)
                 {
-                    Keypad_Debounce(); // Espera soltar e debounce
-                    return key_map[row][col];
+                    if ((cols & (1U << (4 + col))) == 0)
+                    {
+                        GPIO_PORTL_DATA_R |= 0x0F; 
+                        return key_map[row][col];
+                    }
                 }
             }
         }
+        GPIO_PORTL_DATA_R |= 0x0F;
     }
-    
-    return 0; // Nenhuma tecla pressionada
+    return 0; 
 }
